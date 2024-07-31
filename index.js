@@ -5,52 +5,60 @@
 var express = require('express');
 var app = express();
 
-// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
-// so that your API is remotely testable by FCC 
+// enable CORS
 var cors = require('cors');
 app.use(cors({optionsSuccessStatus: 200}));  // some legacy browsers choke on 204
 
-// http://expressjs.com/en/starter/static-files.html
+// Serve static files
 app.use(express.static('public'));
 
-// http://expressjs.com/en/starter/basic-routing.html
+// Basic routing
 app.get("/", function (req, res) {
   res.sendFile(__dirname + '/views/index.html');
 });
 
-// your first API endpoint... 
+// First API endpoint
 app.get("/api/hello", function (req, res) {
   res.json({greeting: 'hello API'});
 });
 
-// Handle requests to /api/ with no date parameter (current date)
-app.get('/api/', (req, res) => {
-  const currentDate = new Date();
-  const currentDateUNIX = currentDate.getTime();
-  const currentDateUTC = currentDate.toUTCString();
-  res.json({ unix: currentDateUNIX, utc: currentDateUTC });
-});
+// Handle requests to /api/:date? with date parameter
+app.get("/api/:date?", (req, res) => {
+  let input = req.params.date;
 
-// Handle requests to /api/:date with a Unix timestamp or date string
-app.get('/api/:date', (req, res) => {
-  const dateParam = req.params.date;
-  let date;
+  // Check if input is empty
+  let isEmpty = !input;
 
-  // Check if the dateParam is a valid Unix timestamp
-  if (!isNaN(parseInt(dateParam))) {
-    date = new Date(parseInt(dateParam));
+  // Check if input is a valid Unix timestamp (integer)
+  let isValidUnixNumber = /^[0-9]+$/.test(input);
+
+  // Check if input is a valid date string
+  let isValidDate = !isNaN(Date.parse(input));
+
+  // Define variables for output
+  let unix_output, utc_output;
+
+  if (isEmpty) {
+    // If no date is provided, return the current date
+    let currentDate = new Date();
+    unix_output = currentDate.getTime();
+    utc_output = currentDate.toUTCString();
+    return res.json({ unix: unix_output, utc: utc_output });
+  } else if (isValidDate) {
+    // If the input is a valid date string
+    let date = new Date(input);
+    unix_output = date.getTime();
+    utc_output = date.toUTCString();
+    return res.json({ unix: unix_output, utc: utc_output });
+  } else if (isValidUnixNumber) {
+    // If the input is a valid Unix timestamp
+    let date = new Date(parseInt(input));
+    unix_output = date.getTime();
+    utc_output = date.toUTCString();
+    return res.json({ unix: unix_output, utc: utc_output });
   } else {
-    // Check if dateParam is a valid date string
-    date = new Date(dateParam);
-  }
-
-  // Validate date
-  if (isNaN(date.getTime())) {
-    res.json({ error: "Invalid Date" });
-  } else {
-    const unix = date.getTime();
-    const utc = date.toUTCString();
-    res.json({ unix, utc });
+    // If the input is invalid
+    return res.json({ error: "Invalid Date" });
   }
 });
 
